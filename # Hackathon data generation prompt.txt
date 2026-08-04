@@ -1,0 +1,230 @@
+# Hackathon data generation prompt pack
+### Service-failure learning platform — synthetic data for domain: `{{DOMAIN}}`
+
+---
+
+## 1. Categories and components for the data feed
+
+Five categories, matched to the five you listed. Each becomes a JSON file your ingestion layer reads as if it came from a real system export.
+
+| # | Category | What it is | Feeds which part of your architecture |
+|---|---|---|---|
+| 1 | **Incidents & root cause** | 20 tickets spanning customer/employee/IT channels, with ground-truth root cause | Ingestion layer, correlation engine (this is your "answer key" for judging whether the AI found the right clusters) |
+| 2 | **Email communications** | Threads tied to a subset of incidents — complaint → ack → investigation → resolution → follow-up | Root cause engine (evidence), recovery module (tone/quality benchmark) |
+| 3 | **Resolutions** | 20 resolution records, proportionate to incident severity | Fair resolution engine (training/benchmark examples) |
+| 4 | **Business & process flow docs** | 1–2 PDFs: the process the failure broke, and an AID describing system interfaces | Root cause engine (context for *why* something broke), RAG grounding |
+| 5 | **KBA (knowledge base articles)** | 8–12 short articles: symptom → cause → fix | Resolution engine (precedent), recovery drafting (consistent language) |
+
+**Why this shape works for a hackathon demo specifically:** categories 1–3 are your "live data," categories 4–5 are your "grounding knowledge." The interesting demo moment is when the AI cites a KBA or process doc to explain *why* three unrelated-looking tickets in category 1 share a root cause — that's the thing a plain keyword search couldn't do.
+
+---
+
+## 2. The ID scheme that ties everything together
+
+Generate in this order — each later category references IDs from earlier ones, so the data is internally consistent and your correlation engine has something real to find:
+
+```
+INC-{{DOMAIN_CODE}}-001 ... 020        → incidents
+EML-{{DOMAIN_CODE}}-001 ... (subset)   → email threads, each tagged with incident_id
+RES-{{DOMAIN_CODE}}-001 ... 020        → resolutions, each tagged with incident_id
+KBA-{{DOMAIN_CODE}}-001 ... 012        → knowledge articles, each tagged with related incident_type
+DOC-{{DOMAIN_CODE}}-PROCESS / DOC-{{DOMAIN_CODE}}-AID → the two reference PDFs
+```
+
+**Deliberately plant 2–3 "hidden clusters"**: sets of 3 incidents (one customer, one employee, one IT) that look unrelated on the surface but share a root cause and a tight time window. This is what your AI correlation step should surface in the demo — decide this up front so you can verify the model actually found it, not just something plausible-sounding.
+
+---
+
+## 3. Generation prompts (one per category)
+
+Run these in order. Paste the domain and use case into every prompt — keep them identical across all five so the data stays coherent.
+
+Replace before each run:
+- `{{DOMAIN}}` — e.g. Retail, Insurance, Banking
+- `{{DOMAIN_CODE}}` — short code, e.g. RTL, INS, BNK
+- `{{USE_CASE}}` — the specific scenario given at the event (e.g. "loyalty points not crediting after app migration")
+
+### Prompt 1 — Incidents & root cause (generate first)
+
+```
+You are generating synthetic test data for a hackathon prototype of a
+service-failure learning platform in the {{DOMAIN}} domain.
+
+Use case context: {{USE_CASE}}
+
+Generate 20 incident records spanning three channels: customer complaints,
+employee/internal service requests, and IT support tickets. Roughly balance
+the 20 across the three channels.
+
+Requirements:
+- Create exactly 2 "hidden clusters" of 3 incidents each (one from each
+  channel) that share the same underlying root cause and occur within a
+  6-hour window of each other, but use different surface-level language so
+  the connection isn't obvious from keywords alone. Mark these with a
+  "cluster_id" field so we can verify the AI finds them later — this field
+  is ground truth for judging, not something the AI should see.
+- The remaining 14 incidents should be unrelated singletons, varied in
+  severity and root cause, to give the model realistic noise.
+- Root causes should span a mix of: technical defect, process/policy gap,
+  third-party/vendor failure, human error, communication breakdown.
+- Descriptions should sound like real ticket text — informal, sometimes
+  incomplete, occasionally emotional for customer-channel tickets.
+
+Output strictly as a JSON array. Schema per record:
+{
+  "incident_id": "INC-{{DOMAIN_CODE}}-001",
+  "channel": "customer_complaint | employee_service | it_support",
+  "cluster_id": "CLU-01 | CLU-02 | null",
+  "datetime": "ISO 8601",
+  "reported_by_role": "customer | employee | agent",
+  "description": "raw ticket text as the reporter would have written it",
+  "severity": "low | medium | high | critical",
+  "affected_system_or_process": "string",
+  "root_cause": "one sentence, ground truth — not shown to the AI at ingestion",
+  "contributing_factors": ["string", "string"],
+  "status": "open | resolved | escalated"
+}
+
+Return only the JSON array, no commentary.
+```
+
+### Prompt 2 — Email communications (run after Prompt 1, paste its output in)
+
+```
+You are generating synthetic email threads for the same hackathon dataset.
+Domain: {{DOMAIN}}. Use case: {{USE_CASE}}.
+
+Here are the incident records already generated:
+{{PASTE INCIDENT JSON FROM PROMPT 1}}
+
+For 8 of these incidents (prioritize the 6 that belong to the two hidden
+clusters, plus 2 unrelated singletons), generate a realistic email thread
+of 3-5 messages covering: initial complaint/request, acknowledgment,
+investigation update, resolution notice, and optionally a dissatisfied
+follow-up if severity is high or critical.
+
+Requirements:
+- Match tone to channel: customer emails are more emotional and informal;
+  internal/IT emails are more procedural.
+- Do not reveal the root cause explicitly in early messages — let it
+  surface gradually the way it would in a real investigation, so a
+  reasoning AI has to actually connect evidence rather than read it off.
+- Keep each email body under 120 words.
+
+Output strictly as a JSON array. Schema:
+{
+  "thread_id": "EML-{{DOMAIN_CODE}}-001",
+  "incident_id": "must match an incident_id from the input",
+  "messages": [
+    {
+      "seq": 1,
+      "from_role": "customer | employee | agent | it_support",
+      "timestamp": "ISO 8601, after the incident's datetime",
+      "subject": "string",
+      "body": "string"
+    }
+  ]
+}
+
+Return only the JSON array, no commentary.
+```
+
+### Prompt 3 — Resolutions (run after Prompt 1)
+
+```
+You are generating synthetic resolution records for the same hackathon
+dataset. Domain: {{DOMAIN}}. Use case: {{USE_CASE}}.
+
+Here are the incident records:
+{{PASTE INCIDENT JSON FROM PROMPT 1}}
+
+Generate one resolution record per incident (20 total). Resolutions must be
+proportionate to severity and consistent across similar incident types —
+this consistency is what your fairness-checking logic should later be able
+to validate or flag violations of, so deliberately make 2 of the 20
+resolutions INCONSISTENT with a same-severity, same-type incident elsewhere
+in the set (mark these with "fairness_flag": true) to give the demo
+something to catch.
+
+Output strictly as a JSON array. Schema:
+{
+  "resolution_id": "RES-{{DOMAIN_CODE}}-001",
+  "incident_id": "must match an incident_id from the input",
+  "resolution_type": "refund | correction | policy_exception | process_fix | compensation | apology_only",
+  "action_taken": "string, specific",
+  "compensation_value": "number or null",
+  "resolution_datetime": "ISO 8601, after incident datetime",
+  "customer_or_employee_satisfaction": "1-5 or null if not surveyed",
+  "fairness_flag": true or false,
+  "agent_notes": "short internal note"
+}
+
+Return only the JSON array, no commentary.
+```
+
+### Prompt 4 — Business process flow & AID documents
+
+```
+You are generating two synthetic reference documents for a hackathon
+prototype in the {{DOMAIN}} domain. Use case: {{USE_CASE}}.
+
+DOCUMENT A — Business process flow:
+Write a 500-700 word document describing the end-to-end business process
+that is relevant to the use case (e.g. the claims process, the refund
+process, the onboarding process — pick the one that matches {{USE_CASE}}).
+Structure it as: process purpose, step-by-step flow (numbered), roles
+involved at each step, systems touched at each step, and known failure
+points. The "known failure points" section should include at least one
+failure mode that matches the root causes used in the incident dataset,
+so the AI can later cite this document as supporting evidence.
+
+DOCUMENT B — Application/architecture interface document (AID):
+Write a 400-600 word technical reference describing the systems involved
+in this process (e.g. CRM, core banking/policy/order system, ITSM,
+notification service) and how they exchange data — which system is
+source of truth for what, what triggers a sync between systems, and where
+a break in that sync would cause exactly the kind of incident in the
+dataset.
+
+Format both as clean Markdown with headers, ready to convert to PDF.
+Return Document A, then a divider "---", then Document B.
+```
+
+### Prompt 5 — Knowledge base articles (KBAs)
+
+```
+You are generating synthetic knowledge base articles for a hackathon
+prototype in the {{DOMAIN}} domain. Use case: {{USE_CASE}}.
+
+Generate 10 short KBAs covering common failure symptoms in this domain,
+including at least 3 that directly match the root causes used in the
+incident dataset below (so the AI can retrieve and cite them), and the
+rest as plausible-but-different adjacent issues (realistic noise for a
+retrieval demo).
+
+Incident root causes to cover:
+{{PASTE THE root_cause VALUES FROM PROMPT 1 OUTPUT}}
+
+Output strictly as a JSON array. Schema:
+{
+  "kba_id": "KBA-{{DOMAIN_CODE}}-001",
+  "title": "string",
+  "symptom": "what the customer/employee/agent observes",
+  "likely_cause": "string",
+  "resolution_steps": ["step 1", "step 2", "step 3"],
+  "applicable_channels": ["customer_complaint", "it_support", "employee_service"],
+  "related_kba_ids": ["array, can be empty"]
+}
+
+Return only the JSON array, no commentary.
+```
+
+---
+
+## 4. How to run this effectively (so the AI can actually consume it)
+
+- **Generate in order (1 → 5), pasting real output forward.** Don't run all five prompts independently — categories 2, 3, and 5 need real incident IDs and root causes from category 1 to reference, or your dataset won't be internally linkable and your correlation demo will have nothing to find.
+- **Keep everything in JSON except the two documents.** JSON gives you a predictable schema to load straight into SQLite/Postgres or a vector store. Convert the two Markdown documents to PDF at the end (pandoc, or any md-to-pdf tool) since that's the format you specified — but generate them as Markdown first for clean structure.
+- **Validate before you build on top of it.** After each generation step, spot-check: do all `incident_id` references in categories 2/3/5 actually exist in category 1's output? A quick script that loads all JSON files and checks foreign-key references catches silent mismatches before they cost you demo time.
+- **Keep the ground-truth fields separate from what the AI sees.** `cluster_id`, `root_cause` (in the incident record), and `fairness_flag` are your answer key — strip or hide them from whatever you feed into the live ingestion/correlation demo, and use them only afterward to show judges "and here's what the AI correctly found."
+- **Regenerate cheaply.** If a batch comes out too clean or too obviously clustered, don't hand-edit — just rerun the prompt; LLM-generated synthetic data is cheap enough that iterating on the prompt beats manually patching output.
