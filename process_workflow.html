@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works — Enterprise Incident Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151c; --bg-2:#181c26; --panel:#1c212d;
+    --ink:#ece7d9; --muted:#8b93a6; --amber:#d9a441; --amber-dim:#8a713a;
+    --teal:#4fb8a9; --violet:#9a8fe0; --red:#c1473a; --line:#2a3040;
+    --display:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace; --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;}
+  body::before{
+    content:"";position:fixed;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size:26px 26px;pointer-events:none;z-index:0;
+  }
+  ::selection{background:var(--amber);color:#1a1a1a;}
+
+  .wrap{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:56px 4vw 90px;}
+
+  header{text-align:center;margin-bottom:8px;}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--amber);display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  .eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:var(--amber);}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(20px,3vw,34px);letter-spacing:-.01em;}
+  h1 span{color:var(--amber);}
+  .sub{font-family:var(--body);color:var(--muted);font-size:clamp(13px,1.15vw,15.5px);max-width:760px;margin:14px auto 0;line-height:1.6;}
+
+  .controls{display:flex;justify-content:center;gap:10px;margin:26px 0 36px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:10px 18px;border-radius:20px;cursor:pointer;transition:all .2s ease;
+  }
+  .btn:hover{border-color:var(--amber);color:var(--amber);}
+  .btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  .btn[data-active="true"]{border-color:var(--amber);color:var(--amber);background:#22190f;}
+
+  /* ---------- shared top nodes ---------- */
+  .shared{max-width:640px;margin:0 auto 0;text-align:center;}
+  .node{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:14px 18px;transition:box-shadow .35s ease, border-color .35s ease;
+  }
+  .node .n{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+  .node .t{font-family:var(--display);font-weight:600;font-size:13px;margin-top:3px;}
+  .node .d{font-family:var(--body);font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:5px;}
+  .node.lit{border-color:var(--amber);box-shadow:0 0 20px rgba(217,164,65,.3);}
+
+  .vline{width:2px;height:30px;background:var(--line);margin:0 auto;position:relative;}
+  .vline .dot{
+    position:absolute;width:7px;height:7px;border-radius:50%;background:var(--amber);
+    left:50%;transform:translateX(-50%);top:-6px;opacity:0;box-shadow:0 0 8px var(--amber);
+  }
+  .vline.flowing .dot{animation:flowDown 1.4s linear infinite;}
+  @keyframes flowDown{0%{top:-6px;opacity:0;}15%{opacity:1;}85%{opacity:1;}100%{top:100%;opacity:0;}}
+
+  .branch3{
+    display:flex;justify-content:center;gap:0;margin-top:6px;
+  }
+  .branch3 .stem{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:6px 0;}
+
+  /* ---------- lanes ---------- */
+  .lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:8px;align-items:start;}
+  @media (max-width:920px){.lanes{grid-template-columns:1fr;}}
+
+  .lane{transition:opacity .4s ease;}
+  .lane.dim{opacity:.28;}
+
+  .lane-head{text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--line);}
+  .lane-head .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;}
+  .lane-head .title{font-family:var(--display);font-weight:600;font-size:14px;margin-top:4px;}
+  .lane.case1 .lane-head{border-color:var(--amber-dim);}
+  .lane.case1 .lane-head .tag{color:var(--amber);}
+  .lane.case2 .lane-head{border-color:#3a6e66;}
+  .lane.case2 .lane-head .tag{color:var(--teal);}
+  .lane.case3 .lane-head{border-color:#4d477e;}
+  .lane.case3 .lane-head .tag{color:var(--violet);}
+
+  .lane-node{
+    background:var(--panel);border:1px solid var(--line);border-radius:7px;
+    padding:12px 14px;transition:box-shadow .35s ease, border-color .35s ease;
+  }
+  .lane-node .n{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+  .lane-node .t{font-family:var(--display);font-weight:600;font-size:12px;margin-top:3px;}
+  .lane-node .d{font-family:var(--body);font-size:11px;color:var(--muted);line-height:1.4;margin-top:4px;}
+  .lane.case1 .lane-node.lit{border-color:var(--amber);box-shadow:0 0 16px rgba(217,164,65,.28);}
+  .lane.case2 .lane-node.lit{border-color:var(--teal);box-shadow:0 0 16px rgba(79,184,169,.28);}
+  .lane.case3 .lane-node.lit{border-color:var(--violet);box-shadow:0 0 16px rgba(154,143,224,.28);}
+
+  .lane-node.hil{border-style:dashed;border-color:var(--amber-dim);position:relative;}
+  .hil-badge{
+    display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+    color:var(--amber);border:1px solid var(--amber-dim);border-radius:10px;padding:2px 8px;
+    margin-top:6px;animation:hilPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes hilPulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+
+  .lane-vline{width:2px;height:22px;background:var(--line);margin:0 auto;position:relative;}
+  .lane-vline .dot{
+    position:absolute;width:6px;height:6px;border-radius:50%;left:50%;transform:translateX(-50%);top:-5px;opacity:0;
+  }
+  .lane.case1 .lane-vline .dot{background:var(--amber);box-shadow:0 0 6px var(--amber);}
+  .lane.case2 .lane-vline .dot{background:var(--teal);box-shadow:0 0 6px var(--teal);}
+  .lane.case3 .lane-vline .dot{background:var(--violet);box-shadow:0 0 6px var(--violet);}
+  .lane-vline.flowing .dot{animation:flowDown 1s linear infinite;}
+
+  .decision{
+    background:transparent;border:1px dashed var(--line);border-radius:7px;
+    padding:10px 12px;
+  }
+  .decision .q{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.03em;}
+  .outcomes{display:flex;gap:8px;margin-top:8px;}
+  .outcome{
+    flex:1;font-family:var(--mono);font-size:9.5px;text-align:center;padding:6px 4px;border-radius:6px;
+    letter-spacing:.02em;
+  }
+  .outcome.go{background:#1c2417;color:var(--teal);border:1px solid #2c4a3f;}
+  .outcome.stop{background:#241a1a;color:var(--red);border:1px solid #4a2c2c;}
+
+  .callout{
+    font-family:var(--body);font-size:10.5px;color:var(--muted);line-height:1.5;
+    border-left:2px solid var(--teal);padding:8px 12px;margin-top:6px;background:#152023;border-radius:0 5px 5px 0;
+  }
+  .callout b{color:var(--teal);}
+
+  .end-chip{
+    text-align:center;font-family:var(--mono);font-size:10.5px;padding:8px 10px;border-radius:16px;margin-top:2px;
+  }
+  .end-chip.pub{background:#1c2417;color:var(--teal);border:1px solid #2c4a3f;}
+  .end-chip.rej{background:#241a1a;color:var(--red);border:1px solid #4a2c2c;}
+  .end-chip.notify{background:#20212b;color:var(--muted);border:1px solid var(--line);}
+
+  /* ---------- legend ---------- */
+  .legend{
+    display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin-top:54px;
+    padding-top:24px;border-top:1px solid var(--line);
+  }
+  .legend-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+  .swatch{width:10px;height:10px;border-radius:50%;}
+  .swatch.amber{background:var(--amber);}
+  .swatch.teal{background:var(--teal);}
+  .swatch.violet{background:var(--violet);}
+  .swatch.dash{background:transparent;border:1px dashed var(--amber-dim);border-radius:3px;}
+
+  footer{text-align:center;margin-top:36px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">How It Works</div>
+    <h1>The Investigation <span>Process</span></h1>
+    <p class="sub">How every incident is investigated, step by step. There are three possible paths depending on what kind of case it is — and a person always reviews the outcome before anything is finalized.</p>
+  </header>
+
+  <div class="controls">
+    <button class="btn" data-trace="1">▶ Trace: Similar Case Found</button>
+    <button class="btn" data-trace="2">▶ Trace: Happening Again</button>
+    <button class="btn" data-trace="3">▶ Trace: Brand New Issue</button>
+    <button class="btn" id="resetBtn">■ Reset</button>
+  </div>
+
+  <!-- SHARED START -->
+  <div class="shared">
+    <div class="node lit" id="startNode">
+      <div class="n">Starting Point</div>
+      <div class="t">A Person Opens an Incident and Clicks "Analyze"</div>
+    </div>
+    <div class="vline flowing"><div class="dot"></div></div>
+    <div class="node" id="recurrenceNode">
+      <div class="n">Always Happens First</div>
+      <div class="t">Check If This Happened Before</div>
+      <div class="d">First checks whether this exact incident was already investigated. If not, searches past cases and asks the AI whether one of them plausibly explains what's happening now.</div>
+    </div>
+    <div class="vline flowing"><div class="dot"></div></div>
+    <div class="node">
+      <div class="n">Decision Point</div>
+      <div class="t">What Kind of Case Is This?</div>
+    </div>
+  </div>
+
+  <div class="branch3">
+    <div class="stem">↙ Similar case found before&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ Same issue happening again&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘ Brand new issue</div>
+  </div>
+
+  <!-- LANES -->
+  <div class="lanes">
+
+    <!-- CASE 1 -->
+    <div class="lane case1" data-lane="1">
+      <div class="lane-head"><div class="tag">Case 1</div><div class="title">Similar Case Found</div></div>
+
+      <div class="lane-node" data-node><div class="n">01</div><div class="t">Gather the Evidence</div><div class="d">Collects the incident details, system logs, and the related deployment record.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">02</div><div class="t">Build a Timeline</div><div class="d">Puts everything in time order and highlights the moment things went wrong.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">03</div><div class="t">Find the Root Cause</div><div class="d">Writes an explanation of what most likely caused the issue, backed by evidence.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">04</div><div class="t">Recommend Recovery Steps</div><div class="d">Writes clear, step-by-step instructions to fix the issue, plus a way to confirm it worked.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">05</div><div class="t">Draft Resolution &amp; Prevention</div><div class="d">Prepares a fair message for the customer and a plan to stop it happening again.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node hil" data-node><div class="n">06</div><div class="t">Expert Review</div><div class="d">Pauses here. The root cause and the prevention plan are reviewed and approved <b>separately</b> — both have to be approved before the case can move on.</div><span class="hil-badge">⏸ Waiting for a Person (2 approvals)</span></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="decision" data-node>
+        <div class="q">Were both reviews approved?</div>
+        <div class="outcomes"><div class="outcome stop">No → Rejected</div><div class="outcome go">Yes ↓</div></div>
+      </div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">07</div><div class="t">Assign Prevention Task</div><div class="d">Assigns the prevention plan to an owner with a due date, using what the expert entered during the Prevention approval.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">08</div><div class="t">Publish to Knowledge Base</div><div class="d">Saves the finished, approved case so it can help with future incidents.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="end-chip pub" data-node>Case Closed — Published ✅</div>
+    </div>
+
+    <!-- CASE 2 -->
+    <div class="lane case2" data-lane="2">
+      <div class="lane-head"><div class="tag">Case 2</div><div class="title">Happening Again</div></div>
+
+      <div class="lane-node" data-node><div class="n">01</div><div class="t">Retrieve the Past Investigation</div><div class="d">Pulls up the earlier investigation for this same issue.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">02</div><div class="t">Check the Earlier Fix</div><div class="d">Checks whether the fix from last time was ever actually finished.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node hil" data-node><div class="n">03</div><div class="t">Notify the Expert</div><div class="d">Pauses here and shows the expert why this incident recurred and what the earlier fix was.</div><span class="hil-badge">⏸ Waiting for a Person</span></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="end-chip notify" data-node>Case Closed — Owner Notified, No Re-Investigation</div>
+    </div>
+
+    <!-- CASE 3 -->
+    <div class="lane case3" data-lane="3">
+      <div class="lane-head"><div class="tag">Case 3</div><div class="title">Brand New Issue</div></div>
+
+      <div class="lane-node hil" data-node><div class="n">01</div><div class="t">Request Details from Support person</div><div class="d">Pauses and asks a human to manually provide the case details — ticket info, logs, cause, resolution, and any related articles.</div><span class="hil-badge">⏸ Waiting for a Person</span></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node hil" data-node><div class="n">02</div><div class="t">Expert Reviews the Details</div><div class="d">Pauses and waits for the expert to review what was submitted.</div><span class="hil-badge">⏸ Waiting for a Person</span></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="decision" data-node>
+        <div class="q">Did the expert approve the documentation?</div>
+        <div class="outcomes"><div class="outcome stop">No → Rejected</div><div class="outcome go">Yes ↓</div></div>
+      </div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="lane-node" data-node><div class="n">03</div><div class="t">Publish to Knowledge Base</div><div class="d">Publishes the submitted case into the knowledge base.</div></div>
+      <div class="lane-vline"><div class="dot"></div></div>
+      <div class="end-chip pub" data-node>Case Closed — Published ✅</div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch amber"></span> Case 1 · Similar Case Found</div>
+    <div class="legend-item"><span class="swatch teal"></span> Case 2 · Happening Again</div>
+    <div class="legend-item"><span class="swatch violet"></span> Case 3 · Brand New Issue</div>
+    <div class="legend-item"><span class="swatch dash"></span> ⏸ Pauses for a person to review</div>
+  </div>
+
+  <footer>If an expert rejects a case, the process stops there — it doesn't automatically start over on its own.</footer>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('[data-trace]');
+  const resetBtn = document.getElementById('resetBtn');
+  const lanes = document.querySelectorAll('.lane');
+  let activeTimeouts = [];
+
+  function clearTrace(){
+    activeTimeouts.forEach(t => clearTimeout(t));
+    activeTimeouts = [];
+    document.querySelectorAll('.lit').forEach(el => el.classList.remove('lit'));
+    document.querySelectorAll('.flowing').forEach(el => {
+      if (!el.classList.contains('always-flow')) el.classList.remove('flowing');
+    });
+    lanes.forEach(l => l.classList.remove('dim'));
+    buttons.forEach(b => b.removeAttribute('data-active'));
+  }
+
+  function traceLane(num, btn){
+    clearTrace();
+    btn.setAttribute('data-active','true');
+    lanes.forEach(l => { if (l.dataset.lane !== String(num)) l.classList.add('dim'); });
+
+    document.getElementById('startNode').classList.add('lit');
+    document.getElementById('recurrenceNode').classList.add('lit');
+
+    const lane = document.querySelector('.lane[data-lane="' + num + '"]');
+    const nodes = lane.querySelectorAll('[data-node]');
+    const vlines = lane.querySelectorAll('.lane-vline');
+    vlines.forEach(v => v.classList.add('flowing'));
+
+    let delay = 250;
+    nodes.forEach((el) => {
+      const t = setTimeout(() => el.classList.add('lit'), delay);
+      activeTimeouts.push(t);
+      delay += 340;
+    });
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => traceLane(btn.getAttribute('data-trace'), btn));
+  });
+  resetBtn.addEventListener('click', clearTrace);
+
+  window.addEventListener('load', () => {
+    const t = setTimeout(() => traceLane('1', buttons[0]), 700);
+    activeTimeouts.push(t);
+  });
+</script>
+</body>
+</html>

@@ -103,7 +103,7 @@
 
   h1.headline{
     font-family:var(--display);font-weight:700;
-    font-size:clamp(30px,4.8vw,64px);
+    font-size:clamp(26px,4.0vw,54px);
     line-height:1.06;letter-spacing:-.01em;
     color:var(--ink);max-width:15ch;
   }
@@ -136,7 +136,7 @@
   .kicker b{color:var(--teal);}
   h1.big-title{
     font-family:var(--display);font-weight:700;
-    font-size:clamp(40px,6.2vw,84px);
+    font-size:clamp(34px,5.2vw,68px);
     line-height:1.0;letter-spacing:-.015em;color:var(--ink);
   }
   h1.big-title .dot{color:var(--amber);}
@@ -236,6 +236,25 @@
   .arrow-link{
     font-family:var(--mono);color:var(--amber-dim);font-size:16px;padding:0 8px;
     transform-origin:left center;
+    display:inline-block;animation:arrowPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes arrowPulse{0%,100%{transform:translateX(0);opacity:.65;}50%{transform:translateX(4px);opacity:1;}}
+
+  /* ---------- CARD HOVER LIFT (applies across all slides) ---------- */
+  .compare-card,.arch-card,.stage,.gate-box,.diagram-panel{
+    transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .compare-card:hover,.arch-card:hover,.stage:hover,.gate-box:hover,.diagram-panel:hover{
+    transform:translateY(-4px);
+    border-color:var(--amber-dim);
+    box-shadow:0 10px 26px rgba(0,0,0,.35);
+  }
+
+  /* ---------- STAMP POP-IN ---------- */
+  .stamp{animation:stampIn .5s cubic-bezier(.34,1.56,.64,1) both;}
+  @keyframes stampIn{
+    from{opacity:0;transform:rotate(-5deg) scale(.6);}
+    to{opacity:1;transform:rotate(-5deg) scale(1);}
   }
   .loop-back{
     font-family:var(--mono);font-size:11.5px;color:var(--teal);letter-spacing:.06em;
@@ -321,6 +340,34 @@
   .compare-card.v-eff .k{color:var(--teal);}
   .compare-card.v-cost .k{color:var(--amber);}
 
+  /* ---------- COMPARE TABLE (how we compare slide) ---------- */
+  .compare-table-wrap{
+    margin-top:28px;max-width:1080px;border:1px solid var(--line);
+    border-radius:6px;overflow:hidden;
+  }
+  table.compare-table{width:100%;border-collapse:collapse;}
+  .compare-table th,.compare-table td{
+    padding:9px 14px;text-align:left;border-bottom:1px solid var(--line);
+    font-family:var(--body);font-size:12px;line-height:1.4;color:var(--ink);
+  }
+  .compare-table thead th{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);background:var(--bg-2);white-space:nowrap;
+  }
+  .compare-table thead th.us{color:var(--amber);background:rgba(217,164,65,.1);}
+  .compare-table td.us{background:rgba(217,164,65,.05);}
+  .compare-table td.cap{color:var(--ink);max-width:260px;}
+  .compare-table tbody tr:last-child td{border-bottom:none;}
+  .compare-table tbody tr:hover td{background:rgba(255,255,255,.02);}
+  .badge{
+    display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.03em;
+    padding:3px 9px;border-radius:10px;white-space:nowrap;
+  }
+  .badge.yes{color:var(--teal);border:1px solid #2c4a3f;background:#1c2417;}
+  .badge.no{color:var(--red);border:1px solid #4a2c2c;background:#241a1a;}
+  .badge.partial{color:var(--amber);border:1px solid var(--amber-dim);background:#22190f;}
+  .badge.nd{color:var(--muted);border:1px dashed var(--line);background:transparent;}
+
   /* ---------- FOOTER NAV ---------- */
   .navzone{position:fixed;top:0;bottom:0;width:38%;z-index:15;cursor:pointer;}
   .navzone.left{left:0;}
@@ -381,8 +428,8 @@
     <div class="content">
       <div class="title-left">
         <div class="kicker">Hackathon Submission · <b>Case No. INC-2026</b></div>
-        <h1 class="big-title">Incident<br>Intelligence<span class="dot">.</span></h1>
-        <p class="title-sub">An AI-assisted system for investigating IT incidents — it gathers the evidence, drafts an explanation of what went wrong and how to fix it, and puts it in front of a human expert before anything is final.</p>
+        <h1 class="big-title">Helix IT Services<br>Incident Intelligence<span class="dot">.</span></h1>
+      
         <p class="title-tag">We don't just close the ticket.<br>We hunt down the story behind it.</p>
         
         <div class="start-hint">Open the case <span class="arrow">→</span></div>
@@ -429,10 +476,84 @@
     </div>
   </section>
 
+   <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">02 · How We Compare</div>
+      <h1 class="headline r" style="--i:1">A crowded market — but a different job.</h1>
+      <p class="lede r" style="--i:2">Most tools in this space are strong at running the incident while it's happening. What's largely still missing: masking sensitive data before it reaches an AI, grounding every explanation in your own case history, recommending a fair resolution — not just a fast one — and catching the repeat problem before it's reopened as a new ticket.</p>
+      <div class="compare-table-wrap r" style="--i:3">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Rootly.io</th>
+              <th>incident.io</th>
+              <th>ServiceNow</th>
+              <th class="us">This Platform</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cap">Cross-channel intake (email, tickets, chat, not just engineering)</td>
+              <td><span class="badge partial">Partial</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td><span class="badge yes">Yes</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">PII masking before AI processing</td>
+              <td><span class="badge nd">Not disclosed</span></td>
+              <td><span class="badge nd">Not disclosed</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">Evidence-grounded RCA against case history</td>
+              <td><span class="badge yes">Yes</span></td>
+              <td><span class="badge yes">Yes</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">Fair, policy-grounded resolution recommendations</td>
+              <td><span class="badge no">No</span></td>
+              <td><span class="badge no">No</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">Human approval gate before closing</td>
+              <td><span class="badge yes">Yes</span></td>
+              <td><span class="badge yes">Yes</span></td>
+              <td><span class="badge yes">Yes</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">Auto-generated knowledge from resolved cases</td>
+              <td><span class="badge partial">Partial</span></td>
+              <td><span class="badge yes">Yes</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td class="cap">Prevention through organizational learning (detects recurring patterns across teams/channels and turns them into preventive action)</td>
+              <td><span class="badge no">No</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td><span class="badge partial">Partial</span></td>
+              <td class="us"><span class="badge yes">Yes</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+ 
+
   <!-- 3 : OUR SOLUTION -->
   <section class="slide">
     <div class="content">
-      <div class="eyebrow r" style="--i:0">02 · Our Solution</div>
+      <div class="eyebrow r" style="--i:0">03 · Our Solution</div>
       <h1 class="headline r" style="--i:1">One process, from scattered evidence to a reviewed fix.</h1>
       <p class="lede r" style="--i:2">The system gathers evidence, checks whether this has happened before, and drafts each part of the case — then stops and waits for a human before anything is finalized.</p>
       <div class="gate-flow r" style="--i:3">
@@ -450,10 +571,11 @@
     </div>
   </section>
 
-  <!-- 4 : HOW IT'S BUILT -->
+  <!-- 4 : HOW WE COMPARE -->
+  <!-- 5 : HOW IT'S BUILT -->
   <section class="slide">
     <div class="content">
-      <div class="eyebrow r" style="--i:0">03 · How It's Built</div>
+      <div class="eyebrow r" style="--i:0">04 · How It's Built</div>
       <h1 class="headline r" style="--i:1;font-size:clamp(24px,3.8vw,46px);">A closer look, in plain terms.</h1>
       <p class="lede r" style="--i:2">Two views of the same system — how the pieces fit together, and how a case moves from open to closed. Open either one for the full, interactive picture.</p>
       <div class="diagram-grid r" style="--i:3">
@@ -473,10 +595,10 @@
     </div>
   </section>
 
-  <!-- 5 : PROCESS FLOW & LAYERED ARCHITECTURE -->
+  <!-- 6 : PROCESS FLOW & LAYERED ARCHITECTURE -->
   <section class="slide">
     <div class="content">
-      <div class="eyebrow r" style="--i:0">04 · Process Flow</div>
+      <div class="eyebrow r" style="--i:0">05 · Process Flow</div>
       <h1 class="headline r" style="--i:1">How it works, layer by layer.</h1>
       <div class="gate-flow r" style="--i:2">
         <div class="gate-box" style="max-width:200px;"><b>Input</b>An incident is opened for analysis</div>
@@ -492,11 +614,12 @@
       <div class="loop-back r" style="--i:3"><span class="ring">↺</span> If the same incident resurfaces after its fix was marked complete, the case is flagged and reopened automatically.</div>
     </div>
   </section>
-<!-- 6 : BUSINESS VALUE -->
+
+  <!-- 7 : BUSINESS VALUE -->
   <section class="slide">
     <div class="content">
       <div class="eyebrow r" style="--i:0">06 · Business Value</div>
-      <h1 class="headline r" style="--i:1">Transforming service failures into measurable business outcomes.</h1>
+      <h1 class="headline r" style="--i:1;font-size:clamp(19px,2.9vw,36px);">Transforming service failures into measurable business outcomes.</h1>
       <div class="value-grid r" style="--i:2">
         <div class="compare-card v-eff">
           <span class="k">Operational Efficiency</span>
@@ -538,43 +661,29 @@
     </div>
   </section>
 
-  <!-- 7 : PRODUCTION APPROACH -->
+  <!-- 8 : ROADMAP TO PRODUCTION -->
   <section class="slide">
     <div class="content">
-      <div class="eyebrow r" style="--i:0">05 · Production Approach</div>
-      <h1 class="headline r" style="--i:1">From inbox to insight, one governed pipeline.</h1>
-      <p class="lede r" style="--i:2">The same investigation loop scales into a production architecture — every channel feeds one pipeline, sensitive data is masked before anything is stored, and each stage hands off to the next with a human still in control of the outcome.</p>
-      <div class="pipeline r" style="--i:3">
-        <div class="stage"><span class="num">01</span><span class="lbl">Sources</span><span class="sub">Email, ServiceNow, Jira, Outlook, Teams</span></div>
+      <div class="eyebrow r" style="--i:0">07 · Roadmap to Production</div>
+      <h1 class="headline r" style="--i:1">A phased path from pilot to platform.</h1>
+      <p class="lede r" style="--i:2">Every phase ships with a clear sign-off gate before the next begins — the same "AI proposes, human decides" principle that governs each individual case also governs the rollout itself.</p>
+      <div class="gate-flow r" style="--i:3">
+        <div class="gate-box" style="max-width:210px;"><span class="when">Weeks 1–4</span><b>Pilot</b>Validate on one incident queue, with human review on every case</div>
         <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">02</span><span class="lbl">Ingestion</span><span class="sub">Collects &amp; normalizes</span></div>
+        <div class="gate-box" style="max-width:210px;"><span class="when">Weeks 5–10</span><b>Integrate</b>Connect Email, ServiceNow, Jira, Outlook, and Teams; stand up ingestion and PII masking</div>
         <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">03</span><span class="lbl">PII Masking</span><span class="sub">Redacts sensitive data</span></div>
+        <div class="gate-box" style="max-width:210px;"><span class="when">Weeks 11–16</span><b>Scale</b>Turn on classification, the vector database, and RAG retrieval across full incident volume</div>
         <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">04</span><span class="lbl">Classification</span><span class="sub">Tags &amp; clusters content</span></div>
-        <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">05</span><span class="lbl">Vector DB</span><span class="sub">Stores embeddings</span></div>
-        <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">06</span><span class="lbl">RAG Retrieval</span><span class="sub">Finds relevant context</span></div>
-        <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">07</span><span class="lbl">LLM Reasoning</span><span class="sub">Drafts the response</span></div>
-        <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">08</span><span class="lbl">Workflow</span><span class="sub">Approvals &amp; notifications</span></div>
-        <span class="arrow-link">→</span>
-        <div class="stage"><span class="num">09</span><span class="lbl">Knowledge Base</span><span class="sub">Feeds the analytics dashboard</span></div>
+        <div class="gate-box" style="max-width:210px;"><span class="when">Month 5+</span><b>Enterprise Rollout</b>Workflow automation and the analytics dashboard go live org-wide, learning loop compounding</div>
       </div>
-      <div class="arch-grid r" style="--i:4">
-        <div class="arch-card"><span class="k">Governed by Design</span><p>PII is masked before classification or storage — nothing sensitive reaches the model unmasked.</p></div>
-        <div class="arch-card"><span class="k">Human in the Loop</span><p>Workflow and approval steps carry the same review gate from the pilot into production.</p></div>
-        <div class="arch-card"><span class="k">Compounding Knowledge</span><p>Every resolved case enriches the vector database, so retrieval gets sharper over time.</p></div>
-      </div>
+      <div class="loop-back r" style="--i:4"><span class="ring">↺</span> Each gate is a go/no-go checkpoint — scope only widens once the prior phase has proven itself.</div>
     </div>
-  </section>  
+  </section>
 
-  <!-- 8 : DEMO + IMPACT + Q&A -->
+  <!-- 9 : DEMO + IMPACT + Q&A -->
   <section class="slide">
     <div class="content">
-      <div class="eyebrow r" style="--i:0">07 · Demo, Impact &amp; Q&amp;A</div>
+      <div class="eyebrow r" style="--i:0">08 · Demo, Impact &amp; Q&amp;A</div>
       <h1 class="headline r" style="--i:1">See the loop close, live.</h1>
       <ul class="points r" style="--i:2">
         <li>Open an incident from the Incidents list</li>

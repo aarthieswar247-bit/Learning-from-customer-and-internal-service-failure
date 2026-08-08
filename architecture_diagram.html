@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It's Built — Enterprise Incident Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151c; --bg-2:#181c26; --panel:#1c212d; --panel-2:#20263380;
+    --ink:#ece7d9; --muted:#8b93a6; --amber:#d9a441; --amber-dim:#8a713a;
+    --teal:#4fb8a9; --red:#c1473a; --line:#2a3040;
+    --display:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace; --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;}
+  body::before{
+    content:"";position:fixed;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size:26px 26px;pointer-events:none;z-index:0;
+  }
+  ::selection{background:var(--amber);color:#1a1a1a;}
+
+  .wrap{position:relative;z-index:1;max-width:1260px;margin:0 auto;padding:56px 6vw 90px;}
+
+  header{text-align:center;margin-bottom:22px;}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--amber);display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  .eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:var(--amber);}
+  h1{
+    font-family:var(--display);font-weight:700;font-size:clamp(22px,3.4vw,38px);
+    letter-spacing:-.01em;
+  }
+  h1 span{color:var(--amber);}
+  .sub{
+    font-family:var(--body);color:var(--muted);font-size:clamp(13px,1.2vw,16px);
+    max-width:720px;margin:14px auto 0;line-height:1.6;
+  }
+
+  .controls{display:flex;justify-content:center;gap:12px;margin:26px 0 10px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:11px 20px;border-radius:20px;cursor:pointer;transition:all .2s ease;
+  }
+  .btn:hover{border-color:var(--amber);color:var(--amber);}
+  .btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  .btn.primary{border-color:var(--amber-dim);color:var(--amber);}
+
+  /* ---------- tiers ---------- */
+  .tier{opacity:0;transform:translateY(16px);animation:fadeUp .6s ease forwards;}
+  @keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+
+  .tier-head{text-align:center;margin-bottom:12px;}
+  .tier-num{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;}
+  .tier-title{font-family:var(--display);font-weight:600;font-size:15px;color:var(--ink);margin-top:4px;}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:20px 26px;max-width:900px;margin:0 auto;
+    transition:box-shadow .4s ease, border-color .4s ease;
+  }
+  .card.lit{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber-dim),0 0 26px rgba(217,164,65,.28);}
+  .card.lit.alt{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 0 26px rgba(79,184,169,.28);}
+  .card .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--amber);display:block;margin-bottom:6px;
+  }
+  .card .k.teal{color:var(--teal);}
+  .card .name{font-family:var(--display);font-weight:600;font-size:16px;margin-bottom:10px;}
+  .card .desc{font-family:var(--body);font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:14px;max-width:640px;margin-left:auto;margin-right:auto;}
+
+  .pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{
+    font-family:var(--mono);font-size:11px;color:var(--ink);background:var(--bg-2);
+    border:1px dashed var(--line);padding:6px 12px;border-radius:14px;letter-spacing:.02em;
+  }
+  .pill.flow{color:var(--amber-dim);}
+  .pill.hil{border-color:var(--amber);color:var(--amber);}
+
+  .agent-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:12px;max-width:1080px;margin:0 auto;
+  }
+  .agent-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;text-align:left;transition:box-shadow .4s ease, border-color .4s ease;
+  }
+  .agent-card.lit{border-color:var(--amber);box-shadow:0 0 18px rgba(217,164,65,.25);}
+  .agent-card .n{font-family:var(--mono);font-size:10px;color:var(--amber-dim);letter-spacing:.08em;}
+  .agent-card b{display:block;font-family:var(--display);font-size:12.5px;font-weight:600;margin:4px 0 4px;}
+  .agent-card p{font-family:var(--body);font-size:11.5px;color:var(--muted);line-height:1.4;}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1080px;margin:0 auto;}
+  @media (max-width:820px){.split{grid-template-columns:1fr;}}
+
+  /* ---------- connectors ---------- */
+  .connector{display:flex;flex-direction:column;align-items:center;height:60px;position:relative;}
+  .connector-line{width:2px;flex:1;background:var(--line);position:relative;overflow:visible;}
+  .connector-dot{
+    position:absolute;width:8px;height:8px;border-radius:50%;left:50%;
+    transform:translateX(-50%);top:-8px;opacity:0;background:var(--amber);
+    box-shadow:0 0 10px var(--amber);
+    animation:flowDown 2.2s linear infinite;
+  }
+  .connector-dot.d2{animation-delay:.7s;}
+  .connector-dot.teal{background:var(--teal);box-shadow:0 0 10px var(--teal);}
+  @keyframes flowDown{
+    0%{top:-6px;opacity:0;}
+    12%{opacity:1;}
+    88%{opacity:1;}
+    100%{top:100%;opacity:0;}
+  }
+  .connector-label{
+    font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.05em;
+    margin-top:6px;text-align:center;max-width:280px;
+  }
+  .split-connectors{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1080px;margin:0 auto;}
+
+  .arrow-down{color:var(--amber-dim);font-family:var(--mono);font-size:16px;text-align:center;}
+
+  /* ---------- external tier ---------- */
+  .ext-card{
+    background:linear-gradient(180deg, var(--panel), var(--bg-2));
+    border:1px solid var(--amber-dim);border-radius:8px;padding:24px 30px;
+    max-width:760px;margin:0 auto;text-align:center;
+  }
+  .ext-card .name{color:var(--amber);}
+  .callers{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px;}
+  .caller-chip{
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:12px;padding:6px 12px;
+  }
+  .caller-chip b{color:var(--ink);font-weight:500;}
+
+  /* ---------- legend ---------- */
+  .legend{
+    display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin-top:56px;
+    padding-top:26px;border-top:1px solid var(--line);
+  }
+  .legend-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .swatch{width:10px;height:10px;border-radius:50%;}
+  .swatch.amber{background:var(--amber);}
+  .swatch.teal{background:var(--teal);}
+  .swatch.dash{background:transparent;border:1px dashed var(--muted);}
+  .swatch.loop{background:transparent;border:1px dashed var(--red);}
+
+  /* ---------- loop-back note ---------- */
+  .loopnote{
+    max-width:640px;margin:18px auto 0;padding:14px 20px;
+    border:1px dashed var(--red);border-radius:8px;
+    background:rgba(193,71,58,.06);text-align:center;
+  }
+  .loopnote .lbl{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--red);display:block;margin-bottom:6px;
+  }
+  .loopnote p{font-family:var(--body);font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .loopnote p b{color:var(--ink);font-weight:600;}
+
+  footer{text-align:center;margin-top:40px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+    .tier{opacity:1 !important;transform:none !important;}
+    .connector-dot{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">How It's Built</div>
+    <h1>Enterprise Incident Intelligence <span>Platform</span></h1>
+    <p class="sub">What happens behind the scenes, from the moment someone opens the app to the moment an answer comes back — in plain terms, step by step.</p>
+  </header>
+
+  <div class="controls">
+    <button class="btn primary" id="replayBtn">▶ Watch It In Action</button>
+  </div>
+
+  <!-- TIER 1 : APP -->
+  <section class="tier" data-tier style="animation-delay:.05s">
+    <div class="tier-head"><div class="tier-num">Step 1</div><div class="tier-title">The App People Use</div></div>
+    <div class="card" data-lit>
+      <span class="k">What Users See</span>
+      <div class="name">The Web Application</div>
+      <p class="desc">This is the screen a person actually uses — to look up an incident, start an investigation, and review or approve what the system finds.</p>
+      <div class="pills">
+        <span class="pill">Dashboard</span><span class="pill">Incidents List</span><span class="pill">Incident Detail</span>
+        <span class="pill">Expert Approvals</span><span class="pill">Prevention Tracking</span><span class="pill">Documentation</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">A request is sent</div></div>
+
+  <!-- TIER 2 : CENTRAL SYSTEM -->
+  <section class="tier" data-tier style="animation-delay:.15s">
+    <div class="tier-head"><div class="tier-num">Step 2</div><div class="tier-title">The Central System</div></div>
+    <div class="card" data-lit>
+      <span class="k">Coordinates Everything</span>
+      <div class="name">The Backend</div>
+      <p class="desc">Every request from the app passes through here first. It keeps track of each incident's progress and knows who needs to review what, and when.</p>
+      <div class="pills">
+        <span class="pill">Incident Records</span><span class="pill">Expert Review</span>
+        <span class="pill">Prevention Tracking</span><span class="pill">Overview &amp; Stats</span><span class="pill">User Accounts</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">Starts or continues the investigation</div></div>
+
+  <!-- TIER 3 : INVESTIGATION ENGINE -->
+  <section class="tier" data-tier style="animation-delay:.25s">
+    <div class="tier-head"><div class="tier-num">Step 3</div><div class="tier-title">The Investigation Engine</div></div>
+    <div class="card" data-lit>
+      <span class="k">Decision Engine</span>
+      <div class="name">Guides Every Investigation</div>
+      <p class="desc">Decides what needs to happen next for each incident, runs each investigation step in order, and pauses whenever a person needs to make a decision. If an incident recurs after its earlier fix was already marked done, the engine escalates to a person and, once acknowledged, reopens the case and sends it through the investigation team again.</p>
+      <div class="pills">
+        <span class="pill flow">Matches a Past Case</span><span class="pill flow">Same Issue Recurring</span><span class="pill flow">Completely New Issue</span>
+        <span class="pill hil">⏸ Waits for a Person</span><span class="pill" style="border-color:var(--red);color:var(--red);">↻ Reopens If Earlier Fix Failed</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">Runs each investigation step</div></div>
+
+  <!-- TIER 4 : AGENTS -->
+  <section class="tier" data-tier style="animation-delay:.35s">
+    <div class="tier-head"><div class="tier-num">Step 4</div><div class="tier-title">The Investigation Team (AI-Assisted)</div></div>
+    <div class="agent-grid">
+      <div class="agent-card" data-lit><span class="n">01</span><b>Check If This Happened Before</b><p>Searches past cases and asks the AI whether one of them plausibly explains this new incident.</p></div>
+      <div class="agent-card" data-lit><span class="n">02</span><b>Gather the Evidence</b><p>Collects the incident details, system logs, and the related deployment record.</p></div>
+      <div class="agent-card" data-lit><span class="n">03</span><b>Build a Timeline</b><p>Puts everything in time order and highlights the moment things went wrong.</p></div>
+      <div class="agent-card" data-lit><span class="n">04</span><b>Find the Root Cause</b><p>Writes an explanation of what most likely caused the issue, backed by evidence.</p></div>
+      <div class="agent-card" data-lit><span class="n">05</span><b>Recommend Recovery Steps</b><p>Writes clear, step-by-step instructions to fix the issue.</p></div>
+      <div class="agent-card" data-lit><span class="n">06</span><b>Draft Resolution &amp; Prevention</b><p>Prepares a fair message for the customer and a plan to stop it happening again.</p></div>
+      <div class="agent-card" data-lit><span class="n">07</span><b>Publish to Knowledge Base</b><p>Saves the finished, approved case so it can help with the next similar incident.</p></div>
+    </div>
+    <div class="loopnote">
+      <span class="lbl">↻ Loop-Back Scenario</span>
+      <p>When a recurring incident's earlier prevention step was already marked <b>Completed</b> but the problem came back anyway, the Decision Engine escalates to a person for acknowledgement, then <b>reopens the case and re-runs the investigation team from Gather the Evidence onward</b> — this time with the earlier fix on record. If the earlier fix was never finished, no re-investigation happens; the system just notifies the owner to complete it.</p>
+    </div>
+  </section>
+
+  <div class="split-connectors">
+    <div class="connector"><div class="connector-line"><div class="connector-dot teal"></div></div><div class="connector-label">Saves records</div></div>
+    <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">Looks up relevant information</div></div>
+  </div>
+
+  <!-- TIER 5 : RECORDS + SEARCH SERVICE -->
+  <section class="tier" data-tier style="animation-delay:.45s">
+    <div class="split">
+      <div class="card" data-lit-alt>
+        <span class="k teal">Records</span>
+        <div class="name">Where Everything Is Stored</div>
+        <p class="desc">Keeps a record of every incident, deployment, log, review decision, and prevention task.</p>
+        <div class="pills">
+          <span class="pill">Incidents</span><span class="pill">Deployments</span><span class="pill">System Logs</span>
+          <span class="pill">Knowledge Articles</span><span class="pill">AI Findings</span><span class="pill">Expert Approvals</span>
+          <span class="pill">Prevention Tasks</span><span class="pill">Progress Tracking</span>
+        </div>
+      </div>
+      <div class="card" data-lit>
+        <span class="k">Search Service</span>
+        <div class="name">Finds Relevant Information</div>
+        <p class="desc">A separate service dedicated to finding the most relevant past cases, articles and policies for whatever is being investigated.</p>
+        <div class="pills">
+          <span class="pill flow">Understand the Question</span><span class="pill flow">Expand the Search</span><span class="pill flow">Search the Records</span>
+          <span class="pill flow">Check Relevance</span><span class="pill flow">Search Again if Needed</span><span class="pill flow">Gather the Best Matches</span>
+          <span class="pill flow">Write an Answer</span><span class="pill flow">Double-Check the Answer</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="split-connectors">
+    <div style="visibility:hidden;"></div>
+    <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">Searches using more than one technique at once</div></div>
+  </div>
+
+  <!-- TIER 6 : SEARCH ENGINE -->
+  <section class="tier" data-tier style="animation-delay:.55s">
+    <div class="tier-head"><div class="tier-num">Step 5</div><div class="tier-title">The Search Engine</div></div>
+    <div class="card" data-lit>
+      <span class="k">Smart Search</span>
+      <div class="name">Combines Two Search Techniques</div>
+      <p class="desc">Searches by meaning and by keyword at the same time, then combines both results to surface the most relevant matches — across five separate collections of information.</p>
+      <div class="pills">
+        <span class="pill">Past Incidents</span><span class="pill">Knowledge Articles</span><span class="pill">Policies</span>
+        <span class="pill">Deployment Records</span><span class="pill">AI-Verified Knowledge</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector"><div class="connector-line"><div class="connector-dot"></div></div><div class="connector-label">Asks the AI to read, reason, or write</div></div>
+
+  <!-- TIER 7 : AI ENGINE -->
+  <section class="tier" data-tier style="animation-delay:.65s">
+    <div class="tier-head"><div class="tier-num">Step 6</div><div class="tier-title">The AI Engine</div></div>
+    <div class="ext-card" data-lit>
+      <span class="k">AI Service</span>
+      <div class="name">Reads, Reasons and Writes</div>
+      <p class="desc" style="margin-bottom:0;">One shared AI service is used everywhere in the system — to check for matches, explain root causes, write recovery steps, and to power the search engine's understanding of documents.</p>
+      <div class="callers">
+        <span class="caller-chip">Used for <b>investigating each incident</b></span>
+        <span class="caller-chip">Used for <b>finding relevant information</b></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch amber"></span> Main flow</div>
+    <div class="legend-item"><span class="swatch teal"></span> Records being saved</div>
+    <div class="legend-item"><span class="swatch dash"></span> A separate part of the system</div>
+    <div class="legend-item"><span class="swatch loop"></span> Loops back to re-investigate</div>
+  </div>
+
+  <footer>This diagram reflects exactly how the system works today — nothing here is planned or aspirational.</footer>
+</div>
+
+<script>
+  const tiers = Array.from(document.querySelectorAll('[data-tier]'));
+  const replayBtn = document.getElementById('replayBtn');
+
+  function litElementsIn(tier){
+    return Array.from(tier.querySelectorAll('[data-lit], [data-lit-alt], .agent-card'));
+  }
+
+  function runTrace(){
+    let delay = 0;
+    tiers.forEach((tier) => {
+      const els = litElementsIn(tier);
+      els.forEach((el, i) => {
+        setTimeout(() => {
+          el.classList.add('lit');
+          if (el.hasAttribute('data-lit-alt')) el.classList.add('alt');
+          setTimeout(() => el.classList.remove('lit','alt'), 900);
+        }, delay + i * 90);
+      });
+      delay += 260;
+    });
+  }
+
+  replayBtn.addEventListener('click', runTrace);
+  window.addEventListener('load', () => setTimeout(runTrace, 700));
+</script>
+</body>
+</html>
