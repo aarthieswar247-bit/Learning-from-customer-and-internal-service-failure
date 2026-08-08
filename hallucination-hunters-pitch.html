@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Incident Intelligence Platform — Case File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151c;
+    --bg-2:#181c26;
+    --panel:#1c212d;
+    --ink:#ece7d9;
+    --muted:#8b93a6;
+    --amber:#d9a441;
+    --amber-dim:#8a713a;
+    --teal:#4fb8a9;
+    --red:#c1473a;
+    --line:#2a3040;
+    --display:'Space Grotesk',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;}
+  ::selection{background:var(--amber);color:#1a1a1a;}
+
+  /* corkboard texture */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size:26px 26px;
+    pointer-events:none;
+    z-index:0;
+  }
+  body::after{
+    content:"";
+    position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 60% 45% at 15% 10%, rgba(217,164,65,0.07), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 90%, rgba(79,184,169,0.06), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+    animation:drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{ transform:translate(0,0); }
+    100%{ transform:translate(-1.5%, 1.5%); }
+  }
+
+  .deck{position:relative;height:100vh;width:100vw;z-index:1;}
+
+  .topbar{
+    position:fixed;top:0;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 6vw 0;
+    z-index:20;
+    pointer-events:none;
+  }
+  .brandmark{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);
+    text-transform:uppercase;
+  }
+  .brandmark b{color:var(--amber);font-weight:600;}
+  .case-counter{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);
+    text-transform:uppercase;
+  }
+  .case-counter span{color:var(--ink);}
+
+  .progress-track{
+    position:fixed;top:0;left:0;right:0;height:2px;background:var(--line);z-index:21;
+  }
+  .progress-fill{
+    height:100%;background:var(--amber);width:9%;
+    transition:width .5s cubic-bezier(.65,0,.35,1);
+  }
+
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:min(9vh,90px) 8vw 12vh;
+    opacity:0;
+    transform:translateY(24px);
+    transition:opacity .55s ease, transform .55s ease;
+    pointer-events:none;
+  }
+  .slide.active{
+    opacity:1;transform:translateY(0);pointer-events:auto;
+  }
+
+  .content{max-width:1180px;width:100%;margin:0 auto;}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);
+    letter-spacing:.18em;text-transform:uppercase;color:var(--amber);
+    display:flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--amber);}
+
+  h1.headline{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(30px,4.8vw,64px);
+    line-height:1.06;letter-spacing:-.01em;
+    color:var(--ink);max-width:15ch;
+  }
+  h1.headline em{
+    font-style:normal;color:var(--amber);
+  }
+
+  .lede{
+    font-family:var(--body);font-weight:400;
+    font-size:clamp(15px,1.35vw,19px);
+    line-height:1.65;color:var(--muted);
+    max-width:640px;margin-top:22px;
+  }
+  .lede strong{color:var(--ink);font-weight:600;}
+
+  .r{
+    opacity:0;transform:translateY(14px);
+    transition:opacity .5s ease, transform .5s ease;
+    transition-delay:calc(var(--i,0) * 90ms);
+  }
+  .slide.active .r{opacity:1;transform:translateY(0);}
+
+  /* ---------- SLIDE 1 : TITLE ---------- */
+  .title-slide .content{display:flex;align-items:center;justify-content:space-between;gap:6vw;}
+  .title-left{flex:1;min-width:280px;}
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:20px;
+  }
+  .kicker b{color:var(--teal);}
+  h1.big-title{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(40px,6.2vw,84px);
+    line-height:1.0;letter-spacing:-.015em;color:var(--ink);
+  }
+  h1.big-title .dot{color:var(--amber);}
+  .title-sub{
+    font-family:var(--body);font-size:clamp(15px,1.5vw,20px);color:var(--muted);
+    margin-top:18px;max-width:46ch;line-height:1.5;
+  }
+  .title-tag{
+    font-family:var(--mono);font-size:12px;color:var(--amber-dim);
+    margin-top:34px;letter-spacing:.05em;
+    border-left:2px solid var(--amber);padding-left:14px;
+  }
+  .start-hint{
+    margin-top:46px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;
+  }
+  .start-hint .arrow{display:inline-block;animation:nudge 1.6s ease-in-out infinite;color:var(--amber);}
+  @keyframes nudge{0%,100%{transform:translateX(0);}50%{transform:translateX(6px);}}
+
+  .board{position:relative;width:min(38vw,420px);height:min(38vw,420px);flex-shrink:0;}
+  .pin-card{
+    position:absolute;width:120px;padding:12px 12px 14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--muted);
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
+    opacity:0;
+    animation:cardIn .7s ease forwards, pinFloat 3.2s ease-in-out infinite;
+  }
+  .pin-card::before{
+    content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);
+    width:9px;height:9px;border-radius:50%;background:var(--amber);
+    box-shadow:0 2px 4px rgba(0,0,0,.5);
+  }
+  .pin-card b{display:block;color:var(--ink);font-size:11px;margin-bottom:4px;font-weight:600;}
+  .pc1{top:2%;left:6%;--r:-4deg;transform:rotate(var(--r));animation-delay:.5s,1.2s;}
+  .pc2{top:14%;right:0%;--r:3deg;transform:rotate(var(--r));animation-delay:.75s,1.45s;}
+  .pc3{bottom:20%;left:0%;--r:2deg;transform:rotate(var(--r));animation-delay:1s,1.7s;}
+  .pc4{bottom:0%;right:10%;--r:-3deg;transform:rotate(var(--r));animation-delay:1.25s,1.95s;}
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(10px) rotate(var(--r,0deg));}
+    to{opacity:1;}
+  }
+  @keyframes pinFloat{
+    0%,100%{transform:translate(0,0) rotate(var(--r,0deg));}
+    50%{transform:translate(4px,-13px) rotate(calc(var(--r,0deg) + 3deg));}
+  }
+  .board svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .board svg path{
+    fill:none;stroke:var(--red);stroke-width:1.4;opacity:.55;
+    stroke-dasharray:400;stroke-dashoffset:400;
+    animation:draw 1.4s ease forwards;
+  }
+  .board svg path.p2{animation-delay:.9s;}
+  .board svg path.p3{animation-delay:1.15s;}
+  .board svg path.p4{animation-delay:1.4s;}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+
+  /* ---------- SCATTERED TAGS (problem slide) ---------- */
+  .scatter{position:relative;height:260px;margin-top:10px;}
+  .tag{
+    position:absolute;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    color:var(--muted);background:var(--panel);border:1px dashed var(--line);
+    padding:9px 14px;border-radius:2px;opacity:.75;
+  }
+  .tag::before{content:"";position:absolute;top:-4px;left:14px;width:7px;height:7px;border-radius:50%;background:var(--amber-dim);}
+  .t1{top:0;left:2%;transform:rotate(-6deg);}
+  .t2{top:8%;left:26%;transform:rotate(4deg);}
+  .t3{top:2%;left:52%;transform:rotate(-3deg);}
+  .t4{top:20%;left:76%;transform:rotate(5deg);}
+  .t5{top:52%;left:10%;transform:rotate(3deg);}
+  .t6{top:60%;left:38%;transform:rotate(-5deg);}
+  .t7{top:48%;left:64%;transform:rotate(2deg);}
+  .t8{top:64%;left:86%;transform:rotate(-4deg);}
+
+  /* ---------- LEDE LIST ---------- */
+  .points{margin-top:30px;max-width:680px;}
+  .points li{
+    list-style:none;font-size:clamp(14.5px,1.25vw,17px);line-height:1.6;color:var(--ink);
+    padding-left:22px;position:relative;margin-bottom:14px;
+  }
+  .points li::before{
+    content:"—";position:absolute;left:0;color:var(--amber);
+  }
+
+  /* ---------- PIPELINE ---------- */
+  .pipeline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:0;margin-top:38px;
+  }
+  .stage{
+    display:flex;flex-direction:column;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:14px 16px;min-width:118px;
+  }
+  .stage .num{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.08em;}
+  .stage .lbl{font-family:var(--display);font-size:15px;font-weight:600;color:var(--ink);}
+  .stage .sub{font-family:var(--body);font-size:11.5px;color:var(--muted);line-height:1.3;max-width:16ch;}
+  .arrow-link{
+    font-family:var(--mono);color:var(--amber-dim);font-size:16px;padding:0 8px;
+    transform-origin:left center;
+  }
+  .loop-back{
+    font-family:var(--mono);font-size:11.5px;color:var(--teal);letter-spacing:.06em;
+    margin-top:16px;display:flex;align-items:center;gap:8px;
+  }
+  .loop-back .ring{display:inline-block;animation:spin 4.5s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- STAMP ---------- */
+  .stamp{
+    display:inline-block;font-family:var(--mono);font-weight:600;font-size:12px;
+    letter-spacing:.14em;padding:8px 16px;border:2px solid var(--teal);color:var(--teal);
+    border-radius:4px;transform:rotate(-5deg);text-transform:uppercase;
+  }
+  .stamp.fail{border-color:var(--red);color:var(--red);}
+
+  .gate-flow{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:34px;}
+  .gate-box{
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 20px;
+    font-family:var(--mono);font-size:12px;color:var(--muted);max-width:180px;line-height:1.4;
+  }
+  .gate-box b{display:block;color:var(--ink);font-family:var(--display);font-size:14px;margin-bottom:6px;font-weight:600;}
+
+  /* ---------- ARCH LIST ---------- */
+  .arch-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:16px;margin-top:34px;max-width:920px;
+  }
+  .arch-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 20px;
+  }
+  .arch-card .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);}
+  .arch-card p{font-family:var(--body);font-size:14px;color:var(--ink);margin-top:8px;line-height:1.5;}
+
+  /* ---------- DIAGRAM PANELS (slide 4) ---------- */
+  .diagram-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:30px;max-width:1080px;
+  }
+  @media (max-width:820px){.diagram-grid{grid-template-columns:1fr;}}
+  .diagram-panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:18px 18px 20px;display:flex;flex-direction:column;
+  }
+  .diagram-panel .dp-title{font-family:var(--display);font-weight:600;font-size:14px;color:var(--ink);}
+  .diagram-panel .dp-desc{font-family:var(--body);font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;margin-bottom:12px;}
+  .diagram-frame{
+    position:relative;width:100%;height:190px;overflow:hidden;border-radius:4px;
+    border:1px solid var(--line);background:var(--bg-2);pointer-events:none;
+  }
+  .diagram-frame iframe{
+    position:absolute;top:0;left:0;border:none;
+    width:1400px;height:2000px;
+    transform:scale(.235);transform-origin:top left;
+  }
+  .diagram-frame.wide iframe{height:1050px;}
+  .diagram-frame::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg, transparent 55%, var(--panel) 100%);
+  }
+  .dp-open{
+    align-self:flex-start;margin-top:12px;font-family:var(--mono);font-size:11px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--amber);text-decoration:none;
+    border:1px solid var(--amber-dim);border-radius:16px;padding:7px 14px;transition:all .2s ease;
+  }
+  .dp-open:hover{background:var(--amber);color:#1a1a1a;}
+
+  /* ---------- COMPARE (problem / gap) ---------- */
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px;max-width:960px;}
+  .compare-card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:20px 22px;}
+  .compare-card .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;display:block;}
+  .compare-card.problem .k{color:var(--red);}
+  .compare-card.gap .k{color:var(--teal);}
+  .compare-card ul{list-style:none;}
+  .compare-card li{font-family:var(--body);font-size:13.5px;color:var(--ink);line-height:1.55;padding-left:16px;position:relative;margin-bottom:10px;}
+  .compare-card li::before{content:"–";position:absolute;left:0;color:var(--muted);}
+  .compare-card li:last-child{margin-bottom:0;}
+
+  /* ---------- VALUE GRID (business value slide) ---------- */
+  .value-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:18px;margin-top:32px;max-width:1080px;
+  }
+  .compare-card.v-eff .k{color:var(--teal);}
+  .compare-card.v-cost .k{color:var(--amber);}
+
+  /* ---------- FOOTER NAV ---------- */
+  .navzone{position:fixed;top:0;bottom:0;width:38%;z-index:15;cursor:pointer;}
+  .navzone.left{left:0;}
+  .navzone.right{right:0;}
+
+  .dots{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%);
+    display:flex;gap:9px;z-index:22;
+  }
+  .dot{
+    width:7px;height:7px;border-radius:50%;background:var(--line);
+    cursor:pointer;transition:all .3s ease;border:none;padding:0;
+  }
+  .dot.active{background:var(--amber);width:22px;border-radius:4px;}
+  .dot:focus-visible{outline:2px solid var(--teal);outline-offset:3px;}
+
+  .arrows{
+    position:fixed;bottom:20px;right:6vw;display:flex;gap:10px;z-index:22;
+  }
+  .navbtn{
+    width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);font-family:var(--mono);font-size:15px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:all .2s ease;
+  }
+  .navbtn:hover{border-color:var(--amber);color:var(--amber);}
+  .navbtn:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  @media (max-width:760px){
+    .title-slide .content{flex-direction:column;align-items:flex-start;gap:40px;}
+    .board{width:80vw;height:80vw;max-width:320px;max-height:320px;margin:0 auto;}
+    .navzone{width:50%;}
+    .scatter{height:340px;}
+    .arrows{right:5vw;}
+    .compare-grid{grid-template-columns:1fr;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+    .r{opacity:1 !important;transform:none !important;}
+    .pin-card{opacity:1 !important;}
+    .board svg path{stroke-dashoffset:0 !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+<div class="topbar">
+  <div class="brandmark"><b>Incident Intelligence Platform</b></div>
+  <div class="case-counter">File <span id="curNum">01</span> / <span id="totNum">06</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 : PROJECT -->
+  <section class="slide title-slide active">
+    <div class="content">
+      <div class="title-left">
+        <div class="kicker">Hackathon Submission · <b>Case No. INC-2026</b></div>
+        <h1 class="big-title">Incident<br>Intelligence<span class="dot">.</span></h1>
+        <p class="title-sub">An AI-assisted system for investigating IT incidents — it gathers the evidence, drafts an explanation of what went wrong and how to fix it, and puts it in front of a human expert before anything is final.</p>
+        <p class="title-tag">We don't just close the ticket.<br>We hunt down the story behind it.</p>
+        
+        <div class="start-hint">Open the case <span class="arrow">→</span></div>
+      </div>
+      <div class="board" aria-hidden="true">
+        <svg viewBox="0 0 300 300">
+          <path class="p1" d="M60,70 C110,110 140,90 170,140" />
+          <path class="p2" d="M170,140 C190,90 220,70 240,60" />
+          <path class="p3" d="M60,70 C50,150 60,190 90,230" />
+          <path class="p4" d="M90,230 C150,260 200,240 240,60" />
+        </svg>
+        <div class="pin-card pc1"><b>TICKET INC001001</b>Login failed for multiple users</div>
+        <div class="pin-card pc2"><b>RECENT UPDATE</b>A recent change to the system</div>
+        <div class="pin-card pc3"><b>REFERENCE ARTICLE</b>A related help article, found</div>
+        <div class="pin-card pc4"><b>PRIOR INCIDENT</b>A similar case from before, found</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 : PROBLEM & GAP -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">01 · Problem &amp; Gap</div>
+      <h1 class="headline r" style="--i:1">The evidence is scattered.<br>Repeat problems go unnoticed.</h1>
+      <p class="lede r" style="--i:2">Every incident touches several different systems — support tickets, system records, past cases, and reference articles. Nobody connects them until a person has to do it by hand.</p>
+      <div class="compare-grid r" style="--i:3">
+        <div class="compare-card problem">
+          <span class="k">Existing Problem</span>
+          <ul>
+            <li>The evidence for one incident is spread across tickets, system records, recent changes, and reference articles</li>
+            <li>Figuring out what actually went wrong is done by hand, and different people do it differently</li>
+            <li>The same problem can happen again under a brand-new ticket number, with nobody noticing</li>
+          </ul>
+        </div>
+        <div class="compare-card gap">
+          <span class="k">The Gap</span>
+          <ul>
+            <li>Nothing automatically checks whether a new case matches one already looked into</li>
+            <li>Nothing checks an AI's explanation against real evidence before a person sees it</li>
+            <li>Nothing carries lessons forward — a solved case doesn't automatically help with the next one</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 : OUR SOLUTION -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">02 · Our Solution</div>
+      <h1 class="headline r" style="--i:1">One process, from scattered evidence to a reviewed fix.</h1>
+      <p class="lede r" style="--i:2">The system gathers evidence, checks whether this has happened before, and drafts each part of the case — then stops and waits for a human before anything is finalized.</p>
+      <div class="gate-flow r" style="--i:3">
+        <div class="gate-box" style="max-width:230px;"><b>Before</b>Evidence pieced together by hand, across several different systems</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:230px;"><b>Our Solution</b>The system gathers evidence, checks if it's happened before, and drafts the case</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:230px;"><b>Result</b>An expert reviews and approves — the case is saved for next time</div>
+      </div>
+      <div class="r" style="--i:4;margin-top:22px;">
+        <span class="stamp">AI Proposes</span>
+        <span style="font-family:var(--mono);color:var(--muted);margin:0 10px;">·</span>
+        <span class="stamp" style="border-color:var(--amber);color:var(--amber);">Human Decides</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 : HOW IT'S BUILT -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">03 · How It's Built</div>
+      <h1 class="headline r" style="--i:1;font-size:clamp(24px,3.8vw,46px);">A closer look, in plain terms.</h1>
+      <p class="lede r" style="--i:2">Two views of the same system — how the pieces fit together, and how a case moves from open to closed. Open either one for the full, interactive picture.</p>
+      <div class="diagram-grid r" style="--i:3">
+        <div class="diagram-panel">
+          <div class="dp-title">How It's Built</div>
+          <div class="dp-desc">The parts of the system and how information moves between them — the app, the central system, the investigation team, and the search &amp; AI services behind them.</div>
+          <div class="diagram-frame"><iframe src="architecture_diagram.html" tabindex="-1" title="System overview preview"></iframe></div>
+          <a class="dp-open" href="architecture_diagram.html" target="_blank" rel="noopener">Open Full View ↗</a>
+        </div>
+        <div class="diagram-panel">
+          <div class="dp-title">How It Works</div>
+          <div class="dp-desc">Every step a case goes through, from the moment it's opened to the moment it's closed — including where a person is always asked to check the work.</div>
+          <div class="diagram-frame wide"><iframe src="process_workflow.html" tabindex="-1" title="Process flow preview"></iframe></div>
+          <a class="dp-open" href="process_workflow.html" target="_blank" rel="noopener">Open Full View ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 : PROCESS FLOW & LAYERED ARCHITECTURE -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">04 · Process Flow</div>
+      <h1 class="headline r" style="--i:1">How it works, layer by layer.</h1>
+      <div class="gate-flow r" style="--i:2">
+        <div class="gate-box" style="max-width:200px;"><b>Input</b>An incident is opened for analysis</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:200px;"><b>Evidence</b>Checks for a similar past case, gathers the relevant records</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:200px;"><b>Reasoning</b>An explanation, a fix, and a prevention plan are drafted from the evidence</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:200px;"><b>Human Oversight</b>An expert reviews it, and approves or sends it back</div>
+        <span class="arrow-link">→</span>
+        <div class="gate-box" style="max-width:200px;"><b>Knowledge</b>Case is saved — the next match gets recognised</div>
+      </div>
+      <div class="loop-back r" style="--i:3"><span class="ring">↺</span> If the same incident resurfaces after its fix was marked complete, the case is flagged and reopened automatically.</div>
+    </div>
+  </section>
+<!-- 6 : BUSINESS VALUE -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">06 · Business Value</div>
+      <h1 class="headline r" style="--i:1">Transforming service failures into measurable business outcomes.</h1>
+      <div class="value-grid r" style="--i:2">
+        <div class="compare-card v-eff">
+          <span class="k">Operational Efficiency</span>
+          <ul>
+            <li>60–80% reduction in manual investigation effort</li>
+            <li>~100 minutes saved per incident through AI-assisted evidence collection, RCA, and response generation</li>
+            <li>Faster SLA decisions and approval workflows</li>
+          </ul>
+        </div>
+        <div class="compare-card v-cost">
+          <span class="k">Cost Savings</span>
+          <ul>
+            <li>15,000 analyst hours saved per month (illustrative, for 10,000 incidents)</li>
+            <li>~$4.5M annual operational savings from reduced manual effort and repeat work</li>
+            <li>Lower support, compliance, and documentation costs</li>
+          </ul>
+        </div>
+        <div class="compare-card v-eff">
+          <span class="k">Customer &amp; Employee Experience</span>
+          <ul>
+            <li>Consistent fair-resolution recommendations using SLA and policy rules</li>
+            <li>Faster customer communication and service recovery</li>
+            <li>Reduced escalations and improved satisfaction (CSAT)</li>
+          </ul>
+        </div>
+        <div class="compare-card v-cost">
+          <span class="k">Organizational Learning</span>
+          <ul>
+            <li>Automatically converts incidents into knowledge articles and preventive actions</li>
+            <li>Detects recurring patterns across customer complaints, HR requests, and IT incidents</li>
+            <li>Prevents repeat failures and continuously improves operations</li>
+          </ul>
+        </div>
+      </div>
+      <div class="r" style="--i:3;margin-top:26px;">
+        <span class="stamp">Not Just Incident Management</span>
+      </div>
+      <p class="lede r" style="--i:4;margin-top:14px;">A platform that reduces cost, protects customer trust, and creates a continuously learning enterprise.</p>
+    </div>
+  </section>
+
+  <!-- 7 : PRODUCTION APPROACH -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">05 · Production Approach</div>
+      <h1 class="headline r" style="--i:1">From inbox to insight, one governed pipeline.</h1>
+      <p class="lede r" style="--i:2">The same investigation loop scales into a production architecture — every channel feeds one pipeline, sensitive data is masked before anything is stored, and each stage hands off to the next with a human still in control of the outcome.</p>
+      <div class="pipeline r" style="--i:3">
+        <div class="stage"><span class="num">01</span><span class="lbl">Sources</span><span class="sub">Email, ServiceNow, Jira, Outlook, Teams</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">02</span><span class="lbl">Ingestion</span><span class="sub">Collects &amp; normalizes</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">03</span><span class="lbl">PII Masking</span><span class="sub">Redacts sensitive data</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">04</span><span class="lbl">Classification</span><span class="sub">Tags &amp; clusters content</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">05</span><span class="lbl">Vector DB</span><span class="sub">Stores embeddings</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">06</span><span class="lbl">RAG Retrieval</span><span class="sub">Finds relevant context</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">07</span><span class="lbl">LLM Reasoning</span><span class="sub">Drafts the response</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">08</span><span class="lbl">Workflow</span><span class="sub">Approvals &amp; notifications</span></div>
+        <span class="arrow-link">→</span>
+        <div class="stage"><span class="num">09</span><span class="lbl">Knowledge Base</span><span class="sub">Feeds the analytics dashboard</span></div>
+      </div>
+      <div class="arch-grid r" style="--i:4">
+        <div class="arch-card"><span class="k">Governed by Design</span><p>PII is masked before classification or storage — nothing sensitive reaches the model unmasked.</p></div>
+        <div class="arch-card"><span class="k">Human in the Loop</span><p>Workflow and approval steps carry the same review gate from the pilot into production.</p></div>
+        <div class="arch-card"><span class="k">Compounding Knowledge</span><p>Every resolved case enriches the vector database, so retrieval gets sharper over time.</p></div>
+      </div>
+    </div>
+  </section>  
+
+  <!-- 8 : DEMO + IMPACT + Q&A -->
+  <section class="slide">
+    <div class="content">
+      <div class="eyebrow r" style="--i:0">07 · Demo, Impact &amp; Q&amp;A</div>
+      <h1 class="headline r" style="--i:1">See the loop close, live.</h1>
+      <ul class="points r" style="--i:2">
+        <li>Open an incident from the Incidents list</li>
+        <li>Click "Analyze Incident" to start the investigation</li>
+        <li>Watch it check if this happened before, gather evidence, and draft the case</li>
+        <li>Review the AI's draft explanation, fix, and prevention plan</li>
+        <li>Approve as the expert — the case is saved for future incidents</li>
+      </ul>
+      <p class="lede r" style="--i:3;margin-top:24px;">Every incident gets the same thorough investigation, based on real evidence. Repeat problems get caught instead of reopened as brand-new tickets. Nothing is finalized without a person signing off.</p>
+      <div class="r" style="--i:4;margin-top:20px;">
+        <span class="stamp">Key Takeaway</span>
+        <span style="font-family:var(--mono);color:var(--muted);margin:0 10px;">·</span>
+        <span class="stamp" style="border-color:var(--amber);color:var(--amber);">Q&amp;A</span>
+      </div>
+      <p class="lede r" style="--i:5;margin-top:20px;font-size:14px;">An incident isn't closed until the fix is verified and the knowledge is kept.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="navzone left" id="navLeft" aria-label="Previous slide"></div>
+<div class="navzone right" id="navRight" aria-label="Next slide"></div>
+
+<div class="dots" id="dots"></div>
+<div class="arrows">
+  <button class="navbtn" id="prevBtn" aria-label="Previous slide">←</button>
+  <button class="navbtn" id="nextBtn" aria-label="Next slide">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  const dotsWrap = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Go to slide ' + (i+1));
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+  });
+  const dots = dotsWrap.querySelectorAll('.dot');
+
+  document.getElementById('totNum').textContent = String(total).padStart(2,'0');
+
+  const navLeft = document.getElementById('navLeft');
+  const navRight = document.getElementById('navRight');
+
+  // Slides with real clickable content (e.g. the diagram links on slide 4) need
+  // the big invisible prev/next click zones turned off over them, otherwise the
+  // zones sit on top and swallow the click. Arrow buttons, dots and keyboard
+  // navigation keep working on those slides regardless.
+  function updateNavzones(){
+    const interactive = slides[current].querySelector('a, button, iframe:not([tabindex="-1"])');
+    navLeft.style.pointerEvents = interactive ? 'none' : '';
+    navRight.style.pointerEvents = interactive ? 'none' : '';
+  }
+
+  function goTo(i){
+    if(i < 0 || i >= total || i === current) return;
+    slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === current));
+    document.getElementById('progressFill').style.width = ((current+1)/total*100) + '%';
+    document.getElementById('curNum').textContent = String(current+1).padStart(2,'0');
+    updateNavzones();
+  }
+  function next(){ if(current < total-1) goTo(current+1); }
+  function prev(){ if(current > 0) goTo(current-1); }
+
+  document.getElementById('navLeft').addEventListener('click', prev);
+  document.getElementById('navRight').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+  document.getElementById('nextBtn').addEventListener('click', next);
+
+  window.addEventListener('keydown', (e) => {
+    if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){ e.preventDefault(); next(); }
+    if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ e.preventDefault(); prev(); }
+    if(e.key === 'Home'){ goTo(0); }
+    if(e.key === 'End'){ goTo(total-1); }
+  });
+
+  // touch swipe
+  let touchX = null;
+  window.addEventListener('touchstart', (e) => { touchX = e.changedTouches[0].clientX; }, {passive:true});
+  window.addEventListener('touchend', (e) => {
+    if(touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if(dx < -40) next();
+    if(dx > 40) prev();
+    touchX = null;
+  }, {passive:true});
+
+  document.getElementById('progressFill').style.width = (100/total) + '%';
+  updateNavzones();
+</script>
+</body>
+</html>
