@@ -1,0 +1,295 @@
+You are an expert GenAI engineer. Build a production-ready, domain-agnostic Agentic RAG Knowledge Base service for use by future multi-agent systems.
+
+Do not hard-code the application to an IT-support use case. The system must ingest and retrieve knowledge from arbitrary documents, primarily PDFs, and expose a REST API that other agents can call.
+
+Architecture
+
+Offline ingestion:
+
+Documents/PDF files
+→ PDF text extraction
+→ Semantic chunking
+→ TCS embedding generation
+→ FAISS dense index
+→ BM25 sparse index
+→ Persist indexes to disk
+
+Online query flow:
+
+User Query
+→ Query Processing
+→ HyDE
+→ Hybrid Retrieval: FAISS + BM25 + Reciprocal Rank Fusion
+→ LLM Retrieval Judge
+→ CRAG confidence check / retry
+→ Context Builder
+→ Grounded Answer Generator
+→ Groundedness Judge
+→ Final Answer
+
+Required stack
+
+- Python 3.12+
+- FastAPI + Uvicorn
+- LangGraph
+- LangChain ChatOpenAI
+- FAISS CPU
+- rank-bm25
+- pypdf
+- NumPy
+- httpx, requests, urllib3
+- No Hugging Face models
+- No CrossEncoder
+- No sentence-transformers
+- No Torch
+- Do not download or call any external model service other than the configured TCS GenAI API.
+
+TCS GenAI model configuration
+
+Use the existing TCS GenAI Lab OpenAI-compatible endpoint.
+
+```python
+BASE_URL = "https://genailab.tcs.in/v1"
+
+LLM_MODEL = "azure/genailab-maas-gpt-4o-mini"
+EMBEDDING_MODEL = "azure/genailab-maas-text-embedding-3-large"
+EMBEDDING_DIM = 3072
+Load the API key from an environment variable, never hard-code it:
+import os
+
+API_KEY = os.getenv("TCS_GENAI_API_KEY")
+if not API_KEY:
+    raise RuntimeError("TCS_GENAI_API_KEY is required")
+Create the LLM client with SSL verification disabled because this is required in the hackathon environment:
+import httpx
+from langchain_openai import ChatOpenAI
+
+http_client = httpx.Client(verify=False)
+
+llm = ChatOpenAI(
+    base_url=BASE_URL,
+    model=LLM_MODEL,
+    api_key=API_KEY,
+    http_client=http_client,
+    temperature=0.0,
+    max_tokens=1024,
+)
+Implement an embedding wrapper using the /embeddings endpoint:
+def get_embedding(text: str) -> list[float]:
+    response = requests.post(
+        f"{BASE_URL}/embeddings",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": EMBEDDING_MODEL,
+            "input": text,
+        },
+        verify=False,
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.json()["data"][0]["embedding"]
+Project structure
+rag_agent/
+├── api.py
+├── config.py
+├── llm.py
+├── requirements.txt
+├── graph/
+│   ├── state.py
+│   ├── nodes.py
+│   └── workflow.py
+└── retrieval/
+    ├── embeddings.py
+    ├── ingest.py
+    ├── retriever.py
+    └── judge.py
+Implementation requirements
+PDF ingestionretrieval/ingest.py must recursively ingest every PDF from a data/ directory.
+Use pypdf.PdfReader.
+Extract each page as a separate source document.
+Store source metadata in this format:
+
+filename.pdf (page 3)
+Skip empty pages.
+Return a clear error for image-only/scanned PDFs, because OCR is not included.
+Running this command must automatically ingest PDFs from data/:
+python .\retrieval\ingest.py
+Chunking and indexesUse semantic chunking based on sentence windows and cosine-distance breakpoints.
+Generate embeddings with the TCS embedding endpoint.
+Create an L2-normalized FAISS IndexFlatIP.
+Build a BM25 index from the same chunks.
+Persist:indexes/faiss.index
+indexes/bm25.pkl
+indexes/chunks.pkl
+
+Persist chunks as plain dictionaries, not Python class objects, so indexes remain loadable regardless of how ingestion was started.
+
+Hybrid retrievalImplement:FAISS dense retrieval
+BM25 sparse retrieval
+weighted Reciprocal Rank Fusion
+
+Use defaults:
+
+TOP_K_FAISS = 10
+TOP_K_BM25 = 10
+TOP_K_JUDGE_CANDIDATES = 10
+TOP_K_JUDGE = 5
+HYBRID_ALPHA = 0.6
+Do not include any local reranker, CrossEncoder, Hugging Face import, Torch import, or model download.
+HyDEGenerate a concise hypothetical answer using the existing TCS LLM.
+Embed both the cleaned query and hypothetical answer.
+Average and normalize the vectors.
+Reuse the already-generated HyDE embedding in the retrieval node. Do not generate HyDE twice for one request.
+
+Modular LLM Retrieval Judge
+Create retrieval/judge.py with a replaceable interface:
+class RetrievalJudge(Protocol):
+    def judge(
+        self,
+        query: str,
+        candidates: Sequence[RetrievedChunk],
+        top_k: int,
+    ) -> RetrievalJudgeResult:
+        ...
+Implement LLMRetrievalJudge using the existing TCS ChatOpenAI client.
+The judge must:
+Evaluate every hybrid-retrieved chunk against the query.
+Return relevance scores from 0 to 100.
+Select the top-k chunks.
+Return an overall retrieval confidence from 0.0 to 1.0.
+Return a concise justification for every selected chunk.
+Request strict JSON from the LLM.
+Robustly parse JSON even if the response is wrapped in Markdown fences.
+Validate chunk IDs and clamp score ranges.
+Fall back to RRF ranking if the judge API call or JSON parsing fails.
+Set fallback confidence to 0.0 so CRAG retry logic is triggered.
+Expected judge response shape:
+{
+  "overall_confidence": 0.82,
+  "chunks": [
+    {
+      "chunk_id": 12,
+      "score": 91,
+      "justification": "Contains the direct procedure and root cause."
+    }
+  ]
+}
+LangGraph workflow
+Use this exact graph sequence:
+START
+→ query_processor
+→ hyde
+→ retrieval
+→ retrieval_judge
+→ crag
+→ context_builder
+→ generator
+→ groundedness
+→ END
+Include an error_handler node for graceful failures.
+Important: do not name the error node error, because error is also a LangGraph state key. Use error_handler.
+Graph state must expose:
+query
+processed_query
+hyde_query
+hyde_embedding
+retrieved_chunks
+judge_chunks
+retrieval_confidence
+retrieval_judgements
+crag_chunks
+crag_status
+crag_scores
+context
+answer
+groundedness_score
+groundedness_passed
+final_answer
+retrieval_count
+error
+CRAG retry routing
+Use these settings:
+RETRIEVAL_JUDGE_CONFIDENCE_THRESHOLD = 0.70
+CRAG_RELEVANCE_THRESHOLD = 0.30
+CRAG_CONFIDENT_THRESHOLD = 0.70
+GROUNDEDNESS_THRESHOLD = 0.60
+MAX_RETRIES = 2
+Routing behavior:
+If retrieval confidence is below 0.70 and retries remain, route back to retrieval.
+If CRAG finds insufficient relevant chunks and retries remain, route back to retrieval.
+If groundedness fails and retries remain, route back to retrieval.
+After maximum retries, return the best available grounded/fallback answer.
+Log all of the following:
+Retrieval Judge started
+Chunk scores
+Selected chunk IDs
+Retrieval confidence
+CRAG retry triggered: yes/no
+Answer generationBuild context from CRAG-approved chunks.
+Include source labels.
+Instruct the LLM to answer only from context.
+If context is insufficient, say so instead of hallucinating.
+Keep answers concise and actionable.
+
+Groundedness evaluationUse the same TCS LLM as an LLM-as-a-judge.
+Score grounding from 0.0 to 1.0.
+Parse float responses safely.
+Do not use external evaluators or APIs.
+
+FastAPI service
+Implement:
+GET  /health
+POST /ingest
+POST /query
+GET /health response:
+{"status": "ok"}
+POST /query request:
+{
+  "query": "What information is available about this topic?"
+}
+POST /query response must include:
+{
+  "query": "...",
+  "processed_query": "...",
+  "hyde_query": "...",
+  "retrieval_confidence": 0.82,
+  "retrieval_judgements": [],
+  "retrieved_chunks": [],
+  "judge_chunks": [],
+  "crag_status": "confident",
+  "crag_scores": [],
+  "groundedness_score": 0.91,
+  "groundedness_passed": true,
+  "retrieval_count": 1,
+  "final_answer": "...",
+  "error": null
+}
+POST /ingest should support JSON documents. PDF ingestion must also work through the direct python retrieval/ingest.py command.
+Windows FAISS/OpenMP compatibility
+Before importing NumPy, FAISS, or any ML library, add:
+import os
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+This prevents Windows FAISS/OpenMP runtime conflicts in environments that still contain old ML packages.
+Requirements
+langchain==0.3.25
+langchain-openai==0.3.16
+langchain-community==0.3.24
+langgraph==0.4.8
+openai==1.82.1
+faiss-cpu==1.11.0
+numpy==1.26.4
+rank-bm25==0.2.2
+pypdf==5.9.0
+httpx==0.28.1
+requests==2.32.3
+certifi==2025.4.26
+urllib3==2.4.0
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.4
+python-dotenv==1.1.0
+tqdm==4.67.1
+Output clean, complete, runnable code for every file. Preserve modularity so the retrieval judge, document loaders, and multi-agent integrations can be replaced or extended later.
